@@ -27,10 +27,10 @@ optional arguments:
 ## Setup
 This setup uses crontab to call TLS report reader. The daily job parses STS TLS reports from the last 24 hours and reports errors only. The second job computes statistics based on reports received within the last seven days.
 
-```crontab
+```cron
 # daily checkup for error
-21 6	* * * 	robot 	/srv/tls-report-reader/tls-report-reader.py --config /srv/tls-report-reader/tls-report-reader.json
+21 6	* * * 	root 	/srv/tls-report-reader/tls-report-reader.py --config /srv/tls-report-reader/tls-report-reader.json
 
 # weekly statistics
-27 6	* * *	robot	/srv/tls-report-reader/tls-report-reader.py --config /srv/tls-report-reader/tls-report-reader.json --days 7 --stats
+27 6	* * *	root	/srv/tls-report-reader/tls-report-reader.py --config /srv/tls-report-reader/tls-report-reader.json --days 7 --stats
 ```
