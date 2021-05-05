@@ -17,12 +17,13 @@ DEFAULT_CONFIG_FILE = 'tls-report-reader.json'
 
 def parse_args():
     ''' parse command line arguments '''
-    parser = argparse.ArgumentParser(description='Analyze TLS reports.')
+    parser = argparse.ArgumentParser(description='Analyze STS TLS reports.')
     parser.add_argument('--days', metavar='N', type=int, default=1,
                         help='Number of days to summarize')
     parser.add_argument('--stats', action='store_true',
                         help='Print statistics, even if no errors have been reported.')
-    parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE)
+    parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE,
+                        help='Location of the configuration file.')
 
     return parser.parse_args()
 
