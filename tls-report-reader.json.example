@@ -1,0 +1,6 @@
+{
+    "imap_server": "imap.test.org",
+    "imap_user": "user@test.org",
+    "imap_pass": "",
+    "imap_filter": "TO user+tls@test.org"
+}
