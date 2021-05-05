@@ -3,4 +3,8 @@
     "imap_user": "user@test.org",
     "imap_pass": "",
     "imap_filter": "TO user+tls@test.org"
+    "matrix_homeserver": "https://test.org",
+    "matrix_user_id": "reporter!test.org",
+    "matrix_room_id": "!tls:test.net", 
+    "matrix_access_token": ""
 }

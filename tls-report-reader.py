@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
+import asyncio
 import argparse
 import email
+import sys
 
 from imaplib import IMAP4_SSL, IMAP4
-from getpass import getpass
 from gzip import decompress
 from json import loads
 from datetime import date, timedelta
 from collections import defaultdict
+from nio import AsyncClient
 
 DEFAULT_CONFIG_FILE = 'tls-report-reader.json'
+
 
 def parse_args():
     ''' parse command line arguments '''
@@ -45,10 +48,10 @@ def compute_stats(imap_server, imap_user, imap_pass, imap_filter, since):
         with IMAP4_SSL(imap_server) as imap:
             imap.login(imap_user, imap_pass)
             imap.select("INBOX")
-            rv, messages = imap.search(None, '({} SINCE {})'.format(
+            _, messages = imap.search(None, '({} SINCE {})'.format(
                 imap_filter, since.strftime("%d-%b-%Y")))
             for msg in messages[0].split(b" "):
-                rv, data = imap.fetch(msg, '(RFC822)')
+                _, data = imap.fetch(msg, '(RFC822)')
 
                 for response in data:
                     if isinstance(response, tuple):
@@ -56,7 +59,7 @@ def compute_stats(imap_server, imap_user, imap_pass, imap_filter, since):
 
                         if not msg.is_multipart():
                             print("Message is not multipart!")
-                            exit(-1)
+                            sys.exit(-1)
 
                         for part in msg.walk():
                             content_disposition = str(
@@ -67,7 +70,6 @@ def compute_stats(imap_server, imap_user, imap_pass, imap_filter, since):
                                 j = loads(content)
 
                                 reporter = j['contact-info']
-                                date_range = j['date-range']
                                 for policy in j['policies']:
                                     domain = policy['policy']['policy-domain']
                                     if not domain in stats[reporter]:
@@ -78,14 +80,40 @@ def compute_stats(imap_server, imap_user, imap_pass, imap_filter, since):
 
     except IMAP4.error as e:
         print("Login failed.", e)
-        exit(-1)
+        sys.exit(-1)
 
     return failures, stats
 
 
-def format_statisics(stats, since):
-    r = ['# Mail statistics: {} to {}:\n'.format(since.isoformat(),
-                                                date.today().isoformat())]
+async def send_matrix_message(homeserver, user_id, access_token, room_id, message):
+    '''
+    Sends the given message to the given matrix server.
+    '''
+    client = AsyncClient(homeserver)
+    client.access_token = access_token
+    client.user_id = user_id
+
+    await client.room_send(
+        room_id,
+        message_type='m.room.message',
+        content={
+            'msgtype': 'm.text',
+            'body': message
+        })
+    await client.close()
+
+
+def format_statisics(stats, failures, since):
+    '''
+    Format the TLS reporting statistics.
+    '''
+    r = []
+    if failures > 0:
+        r.append("# {} TLS Errors reported between {} and {}!\n".format(
+            failures, since.isoformat(), date.today().isoformat()))
+    else:
+        r.append('# Mail statistics: {} to {}:\n'.format(
+            since.isoformat(), date.today().isoformat()))
 
     for no, reporter in enumerate(stats, 1):
         r.append('{}. {}'.format(no, reporter))
@@ -106,4 +134,14 @@ if __name__ == '__main__':
                                     since=since)
 
     if failures > 0 or args.stats:
-        print(format_statisics(stats, since=since))
+        msg = format_statisics(stats, failures, since=since)
+        if config['matrix_homeserver']:
+            asyncio.get_event_loop().run_until_complete(
+                send_matrix_message(homeserver=config['matrix_homeserver'],
+                                    user_id=config['matrix_user_id'],
+                                    access_token=config['matrix_access_token'],
+                                    room_id=config['matrix_room_id'],
+                                    message=msg)
+            )
+        else:
+            print(msg)
