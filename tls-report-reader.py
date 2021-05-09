@@ -20,7 +20,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Analyze STS TLS reports.')
     parser.add_argument('--days', metavar='N', type=int, default=1,
                         help='Number of days to summarize')
-    parser.add_argument('--stats', action='store_true',
+    parser.add_argument('--stats', action='store_true', default=False,
                         help='Print statistics, even if no errors have been reported.')
     parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE,
                         help='Location of the configuration file.')
